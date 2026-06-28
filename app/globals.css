@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Main background - Deep black */
+    --background: 240 10% 1%;
+    /* Main text - Light cream */
+    --foreground: 40 20% 90%;
+
+    /* Card - Dark glass effect */
+    --card: 40 10% 10%;
+    --card-foreground: 40 20% 90%;
+
+    /* Popover - Same as card */
+    --popover: 40 10% 8%;
+    --popover-foreground: 40 20% 90%;
+
+    /* Primary - Gold */
+    --primary: 35 45% 44%;
+    --primary-foreground: 40 20% 95%;
+
+    /* Secondary - Olive green */
+    --secondary: 50 30% 22%;
+    --secondary-foreground: 40 20% 90%;
+
+    /* Muted - Subtle dark */
+    --muted: 40 10% 15%;
+    --muted-foreground: 40 10% 60%;
+
+    /* Accent - Warm olive */
+    --accent: 40 15% 35%;
+    --accent-foreground: 40 20% 90%;
+
+    /* Destructive - Deep red */
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 40 20% 90%;
+
+    /* Success - Deep green */
+    --success: 120 30% 25%;
+    --success-foreground: 120 20% 90%;
+
+    /* Warning - Deep amber */
+    --warning: 40 80% 35%;
+    --warning-foreground: 40 20% 10%;
+
+    /* Borders and inputs */
+    --border: 35 30% 25%;
+    --input: 40 10% 12%;
+    --ring: 35 45% 44%;
+
+    /* Chart colors */
+    --chart-1: 35 45% 44%;
+    --chart-2: 50 30% 22%;
+    --chart-3: 40 15% 35%;
+    --chart-4: 40 20% 60%;
+    --chart-5: 0 62% 30%;
+
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Glass card effect */
+  .glass-card {
+    @apply bg-gradient-to-br from-[rgba(163,124,63,0.08)] to-[rgba(75,77,42,0.04)]
+           backdrop-blur-xl border border-[rgba(163,124,63,0.15)]
+           shadow-[0_8px_32px_0_rgba(0,0,0,0.37)];
+  }
+
+  /* Premium button glow */
+  .btn-glow {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+
+  .btn-glow:hover {
+    @apply shadow-glow-gold;
+  }
+
+  /* Sidebar styling */
+  .sidebar-link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2
+           text-muted-foreground transition-all duration-200
+           hover:bg-accent hover:text-foreground;
+  }
+
+  .sidebar-link.active {
+    @apply bg-primary/10 text-primary border-l-2 border-primary;
+  }
+
+  /* Data table styling */
+  .data-table {
+    @apply w-full border-collapse;
+  }
+
+  .data-table th {
+    @apply bg-muted/50 px-4 py-3 text-left text-sm font-medium
+           text-muted-foreground border-b border-border;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 text-sm border-b border-border/50;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-muted/30;
+  }
+
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5
+           text-xs font-medium transition-colors;
+  }
+
+  .badge-success {
+    @apply bg-success/20 text-success-foreground border border-success/30;
+  }
+
+  .badge-warning {
+    @apply bg-warning/20 text-warning-foreground border border-warning/30;
+  }
+
+  .badge-destructive {
+    @apply bg-destructive/20 text-destructive-foreground border border-destructive/30;
+  }
+
+  .badge-primary {
+    @apply bg-primary/20 text-primary-foreground border border-primary/30;
+  }
+
+  .badge-secondary {
+    @apply bg-secondary/20 text-secondary-foreground border border-secondary/30;
+  }
+
+  /* Scroll styling */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-background rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full hover:bg-muted-foreground/50 transition-colors;
+  }
+
+  /* Page transition */
+  .page-transition {
+    @apply animate-fade-in;
+  }
+
+  /* Input focus ring */
+  input:focus, textarea:focus, select:focus {
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* KPI Card */
+  .kpi-card {
+    @apply glass-card rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] hover:border-primary/30;
+  }
+
+  /* Chart container */
+  .chart-container {
+    @apply glass-card rounded-xl p-6;
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-erp-gold to-erp-gold-50 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-green {
+    @apply bg-gradient-to-r from-erp-green to-erp-green-100 bg-clip-text text-transparent;
+  }
+}
