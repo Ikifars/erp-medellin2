@@ -70,65 +70,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, fetchProfile])
 
   useEffect(() => {
-  let mounted = true
+    let mounted = true
 
-  const initAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
 
+        if (!mounted) return
+
+        if (session?.user) {
+          setUser(session.user)
+          await fetchProfile(session.user.id)
+        }
+      } catch (error) {
+        console.error('Auth init error:', error)
+      } finally {
+        if (mounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    initAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
 
-      if (session?.user) {
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null)
+        setProfile(null)
+        // Só redireciona se já não estiver na página de login para evitar loops
+        if (window.location.pathname !== '/login') {
+          router.push('/login')
+        }
+      } else if (event === 'SIGNED_IN' && session.user) {
         setUser(session.user)
         await fetchProfile(session.user.id)
+        
+        // ✅ CORREÇÃO: Só joga para o dashboard se ele estiver na tela de login ou na raiz
+        if (window.location.pathname === '/login' || window.location.pathname === '/') {
+          router.push('/dashboard')
+        }
+      } else if (event === 'TOKEN_REFRESHED' && session.user) {
+        setUser(session.user)
       }
-    } catch (error) {
-      console.error('Auth init error:', error)
-    } finally {
-      if (mounted) {
-        setIsLoading(false)
-      }
-    }
-  }
-
-  initAuth()
-
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    if (!mounted) return
-
-    if (event === 'SIGNED_OUT' || !session) {
-      setUser(null)
-      setProfile(null)
-      // Só redireciona se já não estiver na página de login para evitar loops
-      if (window.location.pathname !== '/login') {
-        router.push('/login')
-      }
-    } else if (event === 'SIGNED_IN' && session.user) {
-      setUser(session.user)
-      await fetchProfile(session.user.id)
-      
-      // ✅ CORREÇÃO AQUI: Só joga para o dashboard se ele estiver na tela de login
-      // Se ele der F5 direto no dashboard, o código abaixo ignora o redirecionamento mecânico
-      if (window.location.pathname === '/login' || window.location.pathname === '/') {
-        router.push('/dashboard')
-      }
-    } else if (event === 'TOKEN_REFRESHED' && session.user) {
-      setUser(session.user)
-    }
-  })
-
-  return () => {
-    mounted = false
-    subscription.unsubscribe()
-  }
-}, [supabase, router, fetchProfile])
-
+    })
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [supabase, router, fetchProfile])
+  }, [supabase, router, fetchProfile]) // O efeito fecha perfeitamente aqui!
 
   const signOut = async () => {
     await supabase.auth.signOut()
