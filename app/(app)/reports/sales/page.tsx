@@ -65,8 +65,8 @@ export default function SalesReportPage() {
       setOrders(ordersRes.data || [])
       setOrderItems(itemsRes.data || [])
 
-      const prodMap = new Map()
-      productsRes.data?.forEach(p => {
+      const prodMap = new Map<string, any>()
+      productsRes.data?.forEach((p: any) => {
         prodMap.set(p.id, p)
       })
       setProducts(prodMap)
@@ -104,7 +104,7 @@ export default function SalesReportPage() {
 
   // Group by product
   const productSales: Record<string, { quantity: number; total: number }> = {}
-  orderItems.forEach(item => {
+  orderItems.forEach((item: any) => {
     const orderId = item.order_id
     const order = orders.find(o => o.id === orderId)
     if (order) {
