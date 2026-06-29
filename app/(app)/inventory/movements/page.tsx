@@ -71,9 +71,9 @@ export default function StockMovementsPage() {
 
       setMovements(movementsRes.data || [])
 
-      // Create product map for quick lookup
-      const productMap = new Map()
-      productsRes.data?.forEach(p => {
+      // CORREÇÃO AQUI: Tipagem do Map e do parâmetro 'p' para evitar o erro do Vercel build
+      const productMap = new Map<string, Product>()
+      productsRes.data?.forEach((p: Product) => {
         productMap.set(p.id, p)
       })
       setProducts(productMap)
@@ -81,7 +81,7 @@ export default function StockMovementsPage() {
       console.error('Error loading data:', error)
       toast.error('Erro ao carregar movimentações')
     } finally {
-      setIsLoading(false)
+      isLoading(false)
     }
   }
 
