@@ -81,7 +81,7 @@ export default function StockMovementsPage() {
       console.error('Error loading data:', error)
       toast.error('Erro ao carregar movimentações')
     } finally {
-      setisLoading(false)
+      setIsLoading(false)
     }
   }
 
