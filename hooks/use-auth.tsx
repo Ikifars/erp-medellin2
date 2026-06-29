@@ -56,9 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Guardamos a lógica de carregar o perfil em uma referência estática (useRef)
   // para que ela possa ser chamada dentro do useEffect sem precisar entrar no array de dependências.
   // Isso impede que digitações em inputs recriem o fluxo de escuta do Supabase.
-  const fetchProfileRef = useRef<(userId: string) => Promise<void>>(async () => {})
+ const fetchProfileRef = useRef<(userId: string) => Promise<void>>(async () => {})
 
   fetchProfileRef.current = async (userId: string) => {
+    // Se o perfil já estiver carregado e pertencer ao mesmo usuário, evita nova busca desnecessária
+    if (profile && profile.id === userId) return
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -69,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data)
     }
   }
-
   const refreshProfile = useCallback(async () => {
     if (user) {
       await fetchProfileRef.current(user.id)
