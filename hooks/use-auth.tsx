@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Profile } from '@/types/database'
@@ -44,9 +44,7 @@ const rolePermissions: Record<string, Permission[]> = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// ✅ CORREÇÃO 1: Instanciado fora do componente para virar um Singleton global.
-// Isso evita a criação de múltiplas instâncias do GoTrueClient a cada re-render,
-// matando de vez o loop infinito de requisições e limpando o aviso do console.
+// Instanciado estaticamente fora para evitar múltiplas instâncias do cliente
 const supabase = createClient()
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -55,7 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  // Guardamos a lógica de carregar o perfil em uma referência estática (useRef)
+  // para que ela possa ser chamada dentro do useEffect sem precisar entrar no array de dependências.
+  // Isso impede que digitações em inputs recriem o fluxo de escuta do Supabase.
+  const fetchProfileRef = useRef<(userId: string) => Promise<void>>(async () => {})
+
+  fetchProfileRef.current = async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -65,13 +68,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!error && data) {
       setProfile(data)
     }
-  }, [])
+  }
 
   const refreshProfile = useCallback(async () => {
     if (user) {
-      await fetchProfile(user.id)
+      await fetchProfileRef.current(user.id)
     }
-  }, [user, fetchProfile])
+  }, [user])
 
   useEffect(() => {
     let mounted = true
@@ -84,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           setUser(session.user)
-          await fetchProfile(session.user.id)
+          await fetchProfileRef.current(session.user.id)
         }
       } catch (error) {
         console.error('Auth init error:', error)
@@ -104,17 +107,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setProfile(null)
         
-        // Só redireciona se o usuário de fato não estiver na página de login
         if (!window.location.pathname.includes('login')) {
           router.push('/login')
         }
       } else if (event === 'SIGNED_IN' && session.user) {
         setUser(session.user)
-        await fetchProfile(session.user.id)
+        await fetchProfileRef.current(session.user.id)
         
-        // ✅ CORREÇÃO 2: Verificação de rota mais resiliente usando .includes().
-        // Garante o redirecionamento mesmo se a URL da Vercel vier com barras extras ou queries.
-        // Só joga para o dashboard se o usuário estiver na tela de login ou na raiz.
+        // CORREÇÃO DO REDIRECIONAMENTO: Verificação mais flexível e direta.
+        // Se houver uma sessão válida e o usuário estiver na rota de login ou na raiz, força a ida.
         const noLogin = window.location.pathname.includes('login')
         const naRaiz = window.location.pathname === '/'
 
@@ -130,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [router, fetchProfile])
+  }, [router]) // Removemos o fetchProfile daqui de dentro! O efeito agora só roda uma vez na montagem inicial.
 
   const signOut = async () => {
     await supabase.auth.signOut()
