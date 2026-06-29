@@ -44,12 +44,16 @@ const rolePermissions: Record<string, Permission[]> = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// ✅ CORREÇÃO 1: Instanciado fora do componente para virar um Singleton global.
+// Isso evita a criação de múltiplas instâncias do GoTrueClient a cada re-render,
+// matando de vez o loop infinito de requisições e limpando o aviso do console.
+const supabase = createClient()
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -61,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!error && data) {
       setProfile(data)
     }
-  }, [supabase])
+  }, [])
 
   const refreshProfile = useCallback(async () => {
     if (user) {
@@ -99,16 +103,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null)
         setProfile(null)
-        // Só redireciona se já não estiver na página de login para evitar loops
-        if (window.location.pathname !== '/login') {
+        
+        // Só redireciona se o usuário de fato não estiver na página de login
+        if (!window.location.pathname.includes('login')) {
           router.push('/login')
         }
       } else if (event === 'SIGNED_IN' && session.user) {
         setUser(session.user)
         await fetchProfile(session.user.id)
         
-        // ✅ CORREÇÃO: Só joga para o dashboard se ele estiver na tela de login ou na raiz
-        if (window.location.pathname === '/login' || window.location.pathname === '/') {
+        // ✅ CORREÇÃO 2: Verificação de rota mais resiliente usando .includes().
+        // Garante o redirecionamento mesmo se a URL da Vercel vier com barras extras ou queries.
+        // Só joga para o dashboard se o usuário estiver na tela de login ou na raiz.
+        const noLogin = window.location.pathname.includes('login')
+        const naRaiz = window.location.pathname === '/'
+
+        if (noLogin || naRaiz) {
           router.push('/dashboard')
         }
       } else if (event === 'TOKEN_REFRESHED' && session.user) {
@@ -120,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [supabase, router, fetchProfile]) // O efeito fecha perfeitamente aqui!
+  }, [router, fetchProfile])
 
   const signOut = async () => {
     await supabase.auth.signOut()
