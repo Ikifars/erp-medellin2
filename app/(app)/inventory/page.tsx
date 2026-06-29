@@ -271,7 +271,7 @@ export default function InventoryPage() {
                                   <AlertDialogContent>
                                     <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Tem certeza que deseja remover o produto "{product.name}"?
+                                      Tem certeza que deseja remover o produto &apos;{product.name}&apos;?
                                     </AlertDialogDescription>
                                     <div className="flex gap-2 justify-end">
                                       <AlertDialogCancel>Cancelar</AlertDialogCancel>

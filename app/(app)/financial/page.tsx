@@ -281,7 +281,7 @@ export default function FinancialPage() {
                                 <AlertDialogContent>
                                   <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Tem certeza que deseja remover a transação "{transaction.description}"?
+                                    Tem certeza que deseja remover a transação &apos;{transaction.description}&apos;?
                                   </AlertDialogDescription>
                                   <div className="flex gap-2 justify-end">
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>

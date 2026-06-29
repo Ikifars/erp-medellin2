@@ -219,7 +219,7 @@ export default function CustomersPage() {
                                 <AlertDialogContent>
                                   <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Tem certeza que deseja remover o cliente "{customer.name}"?
+                                    Tem certeza que deseja remover o cliente &apos;{customer.name}&apos;?
                                   </AlertDialogDescription>
                                   <div className="flex gap-2 justify-end">
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>

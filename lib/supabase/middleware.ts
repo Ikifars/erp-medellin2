@@ -1,54 +1,44 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
+const PUBLIC_ROUTES = ['/login', '/register', '/auth/callback']
+
+async function getAuthenticatedUser(request: NextRequest) {
+  const accessToken = request.cookies.get('sb-access-token')?.value
+  if (!accessToken) return null
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!supabaseUrl || !anonKey) return null
+
+  const url = `${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      apikey: anonKey,
+      'Content-Type': 'application/json',
+    },
   })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+  if (!response.ok) return null
+  return response.json()
+}
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Define public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/auth/callback']
-  const isPublicRoute = publicRoutes.some(route =>
+export async function updateSession(request: NextRequest) {
+  const isPublicRoute = PUBLIC_ROUTES.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
-  if (!user && !isPublicRoute) {
-    // Redirect to login if not authenticated
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  if (isPublicRoute) {
+    return NextResponse.next({ request })
   }
 
-  return supabaseResponse
+  const user = await getAuthenticatedUser(request)
+  if (user) {
+    return NextResponse.next({ request })
+  }
+
+  const url = request.nextUrl.clone()
+  url.pathname = '/login'
+  return NextResponse.redirect(url)
 }

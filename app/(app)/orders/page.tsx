@@ -279,7 +279,7 @@ export default function OrdersPage() {
                                   <AlertDialogContent>
                                     <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Tem certeza que deseja remover o pedido "{order.number}"?
+                                      Tem certeza que deseja remover o pedido &apos;{order.number}&apos;?
                                     </AlertDialogDescription>
                                     <div className="flex gap-2 justify-end">
                                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
