@@ -4,12 +4,11 @@ const path = require("path");
 const nextConfig = {
   images: { unoptimized: true },
   
-  // 1. Resolve o aviso de dependência crítica do Supabase
   transpilePackages: ['@supabase/supabase-js', '@supabase/ssr'],
   
-  // 2. Move o turbopack para o lugar correto exigido pelo Next.js
   experimental: {
-    turbopack: {
+    // No Next 13.5 a propriedade correta dentro de experimental é 'turbo'
+    turbo: {
       root: path.resolve(__dirname),
     },
   },
