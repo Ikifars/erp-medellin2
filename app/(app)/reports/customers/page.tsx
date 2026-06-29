@@ -19,6 +19,11 @@ import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { Customer, OrderType } from '@/types/database'
 
+// Criamos uma interface estendida para acoplar os pedidos ao cliente sem quebrar os tipos globais
+interface CustomerWithOrders extends Customer {
+  orders: Pick<OrderType, 'total' | 'status' | 'deleted_at'>[]
+}
+
 interface CustomerStats {
   customer: Customer
   totalSpent: number
@@ -36,32 +41,41 @@ export default function CustomersReportPage() {
 
   async function loadReport() {
     try {
-      const [customersRes, ordersRes] = await Promise.all([
-        supabase
-          .from('customers')
-          .select('*')
-          .is('deleted_at', null)
-          .order('name'),
-        supabase
-          .from('orders')
-          .select('*')
-          .is('deleted_at', null),
-      ])
+      setIsLoading(true)
+      
+      // Realiza a busca trazendo os pedidos acoplados de forma otimizada
+      const { data, error } = await supabase
+        .from('customers')
+        .select(`
+          *,
+          orders (
+            total,
+            status,
+            deleted_at
+          )
+        `)
+        .is('deleted_at', null)
+        .order('name')
 
-      if (customersRes.error) throw customersRes.error
-      if (ordersRes.error) throw ordersRes.error
+      if (error) throw error
 
-      const customers = customersRes.data || []
-      const orders = ordersRes.data || []
+      // Forçamos o tipo correto vindo do banco para evitar o "any"
+      const typedData = (data as unknown as CustomerWithOrders[]) || []
 
-      const stats = customers.map(customer => {
-        const customerOrders = orders.filter(o => o.customer_id === customer.id && o.status !== 'cancelado')
-        const totalSpent = customerOrders.reduce((sum, o) => sum + Number(o.total), 0)
+      const stats: CustomerStats[] = typedData.map(customer => {
+        const activeOrders = (customer.orders || []).filter(
+          (o) => o.status !== 'cancelado' && o.deleted_at === null
+        )
+        
+        const totalSpent = activeOrders.reduce((sum, o) => sum + Number(o.total), 0)
+
+        // Remove os dados de ordens antes de salvar no estado
+        const { orders, ...customerData } = customer
 
         return {
-          customer,
+          customer: customerData as Customer,
           totalSpent,
-          orderCount: customerOrders.length,
+          orderCount: activeOrders.length,
         }
       }).sort((a, b) => b.totalSpent - a.totalSpent)
 
@@ -75,24 +89,25 @@ export default function CustomersReportPage() {
   }
 
   function exportCSV() {
-    const csv = [
+    const csvContent = [
       ['Nome', 'Email', 'Telefone', 'Total Gasto', 'Número de Pedidos', 'Ticket Médio'],
       ...customerStats.map(stat => [
-        stat.customer.name,
-        stat.customer.email || 'N/A',
-        stat.customer.phone || 'N/A',
+        `"${stat.customer.name}"`,
+        `"${stat.customer.email || 'N/A'}"`,
+        `"${stat.customer.phone || 'N/A'}"`,
         stat.totalSpent,
         stat.orderCount,
-        stat.orderCount > 0 ? stat.totalSpent / stat.orderCount : 0
+        stat.orderCount > 0 ? (stat.totalSpent / stat.orderCount).toFixed(2) : 0
       ])
     ].map(row => row.join(',')).join('\n')
 
-    const blob = new Blob([csv], { type: 'text/csv' })
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `clientes_${new Date().toISOString().split('T')[0]}.csv`
     a.click()
+    window.URL.revokeObjectURL(url)
   }
 
   const totalCustomers = customerStats.length
