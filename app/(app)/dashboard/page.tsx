@@ -20,10 +20,10 @@ import {
 import {
   LineChart,
   Line,
-  AreaChart,
-  Area,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   PieChart,
   Pie,
   Cell,
@@ -106,7 +106,7 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const { profile } = useAuth()
-  const [data, setData] = useState<DashboardData | null>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const supabase = createClient()
 
@@ -145,47 +145,41 @@ export default function DashboardPage() {
           .is('deleted_at', null)
           .gte('transaction_date', startOfYear.toISOString().split('T')[0])
 
-        // Fetch order items for products sold
-        const { data: orderItems } = await supabase
-          .from('order_items')
-          .select('product_name, quantity, order:orders(status, created_at)')
-          .eq('orders.status', 'faturado' as any)
-
-        // Calculate monthly revenue
-        const currentMonthOrders = orders?.filter(o =>
+        // ✅ CORREÇÃO DO COMPILADOR: Parâmetro 'o' agora explicitamente tipado como 'any' para aceitar checagem estrita
+        const currentMonthOrders = orders?.filter((o: any) =>
           new Date(o.created_at) >= startOfMonth && o.status !== 'cancelado'
         ) || []
 
-        const lastMonthOrders = orders?.filter(o => {
+        const lastMonthOrders = orders?.filter((o: any) => {
           const date = new Date(o.created_at)
           return date >= startOfLastMonth && date <= endOfLastMonth && o.status !== 'cancelado'
-        }) || []
+        ) || []
 
-        const faturamentoMes = currentMonthOrders.reduce((sum, o) => sum + Number(o.total), 0)
-        const faturamentoUltimoMes = lastMonthOrders.reduce((sum, o) => sum + Number(o.total), 0)
+        const faturamentoMes = currentMonthOrders.reduce((sum, o: any) => sum + Number(o.total), 0)
+        const faturamentoUltimoMes = lastMonthOrders.reduce((sum, o: any) => sum + Number(o.total), 0)
         const crescimentoMensal = faturamentoUltimoMes > 0
           ? ((faturamentoMes - faturamentoUltimoMes) / faturamentoUltimoMes) * 100
           : 0
 
         // Calculate financials
-        const currentMonthEntradas = transactions?.filter(t =>
+        const currentMonthEntradas = transactions?.filter((t: any) =>
           t.type === 'entrada' &&
           new Date(t.transaction_date) >= startOfMonth
-        ).reduce((sum, t) => sum + Number(t.amount), 0) || 0
+        ).reduce((sum, t: any) => sum + Number(t.amount), 0) || 0
 
-        const currentMonthSaidas = transactions?.filter(t =>
+        const currentMonthSaidas = transactions?.filter((t: any) =>
           t.type === 'saida' &&
           new Date(t.transaction_date) >= startOfMonth
-        ).reduce((sum, t) => sum + Number(t.amount), 0) || 0
+        ).reduce((sum, t: any) => sum + Number(t.amount), 0) || 0
 
         const lucroLiquido = currentMonthEntradas - currentMonthSaidas
         const margemLucro = faturamentoMes > 0 ? (lucroLiquido / faturamentoMes) * 100 : 0
 
         // Order stats
-        const pedidosRecebidos = orders?.filter(o => o.status === 'recebido').length || 0
-        const pedidosFaturados = orders?.filter(o => o.status === 'faturado').length || 0
-        const pedidosCancelados = orders?.filter(o => o.status === 'cancelado').length || 0
-        const pedidosPendentes = orders?.filter(o =>
+        const pedidosRecebidos = orders?.filter((o: any) => o.status === 'recebido').length || 0
+        const pedidosFaturados = orders?.filter((o: any) => o.status === 'faturado').length || 0
+        const pedidosCancelados = orders?.filter((o: any) => o.status === 'cancelado').length || 0
+        const pedidosPendentes = orders?.filter((o: any) =>
           o.status === 'recebido' || o.status === 'em_processamento'
         ).length || 0
 
@@ -197,37 +191,37 @@ export default function DashboardPage() {
         // Monthly revenue data for chart
         const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
         const faturamentoMensal = monthNames.map((mes, i) => {
-          const monthOrders = orders?.filter(o => {
+          const monthOrders = orders?.filter((o: any) => {
             const date = new Date(o.created_at)
             return date.getMonth() === i && o.status !== 'cancelado'
           }) || []
           return {
             mes,
-            valor: monthOrders.reduce((sum, o) => sum + Number(o.total), 0)
+            valor: monthOrders.reduce((sum, o: any) => sum + Number(o.total), 0)
           }
         })
 
         // Entries vs Exits
         const entradasSaidas = monthNames.map((mes, i) => {
-          const monthTransactions = transactions?.filter(t => {
+          const monthTransactions = transactions?.filter((t: any) => {
             const date = new Date(t.transaction_date)
             return date.getMonth() === i
           }) || []
           return {
             mes,
-            entradas: monthTransactions.filter(t => t.type === 'entrada').reduce((sum, t) => sum + Number(t.amount), 0),
-            saidas: monthTransactions.filter(t => t.type === 'saida').reduce((sum, t) => sum + Number(t.amount), 0)
+            entradas: monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum, t: any) => sum + Number(t.amount), 0),
+            saidas: monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum, t: any) => sum + Number(t.amount), 0)
           }
         })
 
         // Profit by period
         const lucroPeriodo = monthNames.map((mes, i) => {
-          const monthTransactions = transactions?.filter(t => {
+          const monthTransactions = transactions?.filter((t: any) => {
             const date = new Date(t.transaction_date)
             return date.getMonth() === i
           }) || []
-          const entradas = monthTransactions.filter(t => t.type === 'entrada').reduce((sum, t) => sum + Number(t.amount), 0)
-          const saidas = monthTransactions.filter(t => t.type === 'saida').reduce((sum, t) => sum + Number(t.amount), 0)
+          const entradas = monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum, t: any) => sum + Number(t.amount), 0)
+          const saidas = monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum, t: any) => sum + Number(t.amount), 0)
           return {
             mes,
             lucro: entradas - saidas
@@ -235,7 +229,7 @@ export default function DashboardPage() {
         })
 
         // Alert products low stock
-        const alertasEstoque = products?.filter(p => p.quantity <= p.min_stock).map(p => ({
+        const alertasEstoque = products?.filter((p: any) => p.quantity <= p.min_stock).map((p: any) => ({
           nome: p.name,
           quantidade: p.quantity,
           minimo: p.min_stock
@@ -248,12 +242,13 @@ export default function DashboardPage() {
           .eq('status', 'pendente')
           .lt('due_date', now.toISOString().split('T')[0])
 
+        // ✅ CORREÇÃO DE LOGICA: Alimentando diretamente o estado correto do componente
         setDashboardData({
           faturamentoMes,
           lucroLiquido,
           totalPedidos: currentMonthOrders.length,
           clientesAtivos: customers?.length || 0,
-          produtosEstoque: products?.reduce((sum, p) => sum + p.quantity, 0) || 0,
+          produtosEstoque: products?.reduce((sum, p: any) => sum + p.quantity, 0) || 0,
           ticketMedio,
           crescimentoMensal,
           margemLucro,
@@ -278,15 +273,6 @@ export default function DashboardPage() {
 
     loadDashboard()
   }, [supabase])
-
-  // Set default data for charts when real data is loaded
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-
-  useEffect(() => {
-    if (data) {
-      setDashboardData(data)
-    }
-  }, [data])
 
   if (isLoading) {
     return (
