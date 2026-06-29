@@ -49,8 +49,9 @@ export default function InventoryReportPage() {
 
       setProducts(productsRes.data || [])
 
-      const catMap = new Map()
-      categoriesRes.data?.forEach(c => {
+      const catMap = new Map<string, Category>()
+      // Corrigido: Tipado explicitamente o parâmetro 'c' como 'Category' para não quebrar o build
+      categoriesRes.data?.forEach((c: Category) => {
         catMap.set(c.id, c)
       })
       setCategories(catMap)
@@ -63,12 +64,12 @@ export default function InventoryReportPage() {
   }
 
   function exportCSV() {
-    const csv = [
+    const csvContent = [
       ['Nome', 'SKU', 'Categoria', 'Quantidade', 'Estoque Mínimo', 'Preço de Venda', 'Valor Total', 'Status'],
       ...products.map(p => [
-        p.name,
-        p.sku,
-        categories.get(p.category_id || '')?.name || 'N/A',
+        `"${p.name}"`,
+        `"${p.sku || 'N/A'}"`,
+        `"${categories.get(p.category_id || '')?.name || 'N/A'}"`,
         p.quantity,
         p.min_stock,
         p.sale_price,
@@ -77,12 +78,14 @@ export default function InventoryReportPage() {
       ])
     ].map(row => row.join(',')).join('\n')
 
-    const blob = new Blob([csv], { type: 'text/csv' })
+    // Adicionado \uFEFF para corrigir acentuação no Excel do Windows
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `estoque_${new Date().toISOString().split('T')[0]}.csv`
     a.click()
+    window.URL.revokeObjectURL(url)
   }
 
   const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.sale_price), 0)
