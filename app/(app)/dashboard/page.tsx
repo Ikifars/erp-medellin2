@@ -145,15 +145,15 @@ export default function DashboardPage() {
           .is('deleted_at', null)
           .gte('transaction_date', startOfYear.toISOString().split('T')[0])
 
-        // ✅ CORREÇÃO DO COMPILADOR: Parâmetro 'o' agora explicitamente tipado como 'any' para aceitar checagem estrita
         const currentMonthOrders = orders?.filter((o: any) =>
           new Date(o.created_at) >= startOfMonth && o.status !== 'cancelado'
         ) || []
 
+        // ✅ CORRIGIDO: Chave de fechamento da arrow function adicionada com sucesso
         const lastMonthOrders = orders?.filter((o: any) => {
           const date = new Date(o.created_at)
           return date >= startOfLastMonth && date <= endOfLastMonth && o.status !== 'cancelado'
-        ) || []
+        }) || []
 
         const faturamentoMes = currentMonthOrders.reduce((sum, o: any) => sum + Number(o.total), 0)
         const faturamentoUltimoMes = lastMonthOrders.reduce((sum, o: any) => sum + Number(o.total), 0)
@@ -242,7 +242,6 @@ export default function DashboardPage() {
           .eq('status', 'pendente')
           .lt('due_date', now.toISOString().split('T')[0])
 
-        // ✅ CORREÇÃO DE LOGICA: Alimentando diretamente o estado correto do componente
         setDashboardData({
           faturamentoMes,
           lucroLiquido,
