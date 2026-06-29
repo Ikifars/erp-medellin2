@@ -83,9 +83,9 @@ export default function OrdersPage() {
 
       setOrders(ordersRes.data || [])
 
-      // Create customer map
-      const customerMap = new Map()
-      customersRes.data?.forEach(c => {
+      // CORREÇÃO AQUI: Tipagem do Map e do parâmetro 'c' do forEach
+      const customerMap = new Map<string, Customer>()
+      customersRes.data?.forEach((c: Customer) => {
         customerMap.set(c.id, c)
       })
       setCustomers(customerMap)
