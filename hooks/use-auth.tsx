@@ -53,14 +53,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // Guardamos a lógica de carregar o perfil em uma referência estática (useRef)
-  // para que ela possa ser chamada dentro do useEffect sem precisar entrar no array de dependências.
-  // Isso impede que digitações em inputs recriem o fluxo de escuta do Supabase.
- const fetchProfileRef = useRef<(userId: string) => Promise<void>>(async () => {})
+  // Guardamos a referência do perfil atual para checagem síncrona dentro da ref
+  const profileStateRef = useRef<Profile | null>(null)
+  profileStateRef.current = profile
+
+  const fetchProfileRef = useRef<(userId: string) => Promise<void>>(async () => {})
 
   fetchProfileRef.current = async (userId: string) => {
-    // Se o perfil já estiver carregado e pertencer ao mesmo usuário, evita nova busca desnecessária
-    if (profile && profile.id === userId) return
+    // ✅ TRAVA DE REPETIÇÃO: Se o perfil do estado já for o deste usuário, corta o fetch imediatamente.
+    // Isso mata qualquer loop ou gatilho gerado por re-renders do formulário de login.
+    if (profileStateRef.current && profileStateRef.current.id === userId) {
+      return
+    }
 
     const { data, error } = await supabase
       .from('profiles')
@@ -72,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data)
     }
   }
+
   const refreshProfile = useCallback(async () => {
     if (user) {
       await fetchProfileRef.current(user.id)
@@ -116,12 +121,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session.user)
         await fetchProfileRef.current(session.user.id)
         
-        // CORREÇÃO DO REDIRECIONAMENTO: Verificação mais flexível e direta.
-        // Se houver uma sessão válida e o usuário estiver na rota de login ou na raiz, força a ida.
         const noLogin = window.location.pathname.includes('login')
         const naRaiz = window.location.pathname === '/'
 
         if (noLogin || naRaiz) {
+          // ✅ SINCRONIZAÇÃO COM MIDDLEWARE: Atualiza os cookies nas rotas do Next.js
+          // antes de empurrar a navegação, prevenindo o retorno forçado (307) para a tela de login.
+          router.refresh()
           router.push('/dashboard')
         }
       } else if (event === 'TOKEN_REFRESHED' && session.user) {
@@ -133,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [router]) // Removemos o fetchProfile daqui de dentro! O efeito agora só roda uma vez na montagem inicial.
+  }, [router])
 
   const signOut = async () => {
     await supabase.auth.signOut()
