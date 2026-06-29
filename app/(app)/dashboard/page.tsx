@@ -149,14 +149,14 @@ export default function DashboardPage() {
           new Date(o.created_at) >= startOfMonth && o.status !== 'cancelado'
         ) || []
 
-        // ✅ CORRIGIDO: Chave de fechamento da arrow function adicionada com sucesso
         const lastMonthOrders = orders?.filter((o: any) => {
           const date = new Date(o.created_at)
           return date >= startOfLastMonth && date <= endOfLastMonth && o.status !== 'cancelado'
         }) || []
 
-        const faturamentoMes = currentMonthOrders.reduce((sum, o: any) => sum + Number(o.total), 0)
-        const faturamentoUltimoMes = lastMonthOrders.reduce((sum, o: any) => sum + Number(o.total), 0)
+        // ✅ CORRIGIDO: sum explicitamente tipado como : number em todos os .reduce()
+        const faturamentoMes = currentMonthOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0)
+        const faturamentoUltimoMes = lastMonthOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0)
         const crescimentoMensal = faturamentoUltimoMes > 0
           ? ((faturamentoMes - faturamentoUltimoMes) / faturamentoUltimoMes) * 100
           : 0
@@ -165,12 +165,12 @@ export default function DashboardPage() {
         const currentMonthEntradas = transactions?.filter((t: any) =>
           t.type === 'entrada' &&
           new Date(t.transaction_date) >= startOfMonth
-        ).reduce((sum, t: any) => sum + Number(t.amount), 0) || 0
+        ).reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0
 
         const currentMonthSaidas = transactions?.filter((t: any) =>
           t.type === 'saida' &&
           new Date(t.transaction_date) >= startOfMonth
-        ).reduce((sum, t: any) => sum + Number(t.amount), 0) || 0
+        ).reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0
 
         const lucroLiquido = currentMonthEntradas - currentMonthSaidas
         const margemLucro = faturamentoMes > 0 ? (lucroLiquido / faturamentoMes) * 100 : 0
@@ -197,7 +197,7 @@ export default function DashboardPage() {
           }) || []
           return {
             mes,
-            valor: monthOrders.reduce((sum, o: any) => sum + Number(o.total), 0)
+            valor: monthOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0)
           }
         })
 
@@ -209,8 +209,8 @@ export default function DashboardPage() {
           }) || []
           return {
             mes,
-            entradas: monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum, t: any) => sum + Number(t.amount), 0),
-            saidas: monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum, t: any) => sum + Number(t.amount), 0)
+            entradas: monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum: number, t: any) => sum + Number(t.amount), 0),
+            saidas: monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum: number, t: any) => sum + Number(t.amount), 0)
           }
         })
 
@@ -220,8 +220,8 @@ export default function DashboardPage() {
             const date = new Date(t.transaction_date)
             return date.getMonth() === i
           }) || []
-          const entradas = monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum, t: any) => sum + Number(t.amount), 0)
-          const saidas = monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum, t: any) => sum + Number(t.amount), 0)
+          const entradas = monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum: number, t: any) => sum + Number(t.amount), 0)
+          const saidas = monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum: number, t: any) => sum + Number(t.amount), 0)
           return {
             mes,
             lucro: entradas - saidas
@@ -247,7 +247,7 @@ export default function DashboardPage() {
           lucroLiquido,
           totalPedidos: currentMonthOrders.length,
           clientesAtivos: customers?.length || 0,
-          produtosEstoque: products?.reduce((sum, p: any) => sum + p.quantity, 0) || 0,
+          produtosEstoque: products?.reduce((sum: number, p: any) => sum + p.quantity, 0) || 0,
           ticketMedio,
           crescimentoMensal,
           margemLucro,
