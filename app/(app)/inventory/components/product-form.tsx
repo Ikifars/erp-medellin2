@@ -97,10 +97,8 @@ export function ProductForm({ productId, initialData, onSuccess }: ProductFormPr
 
   async function onSubmit(data: ProductFormValues) {
     try {
-      const margin = data.sale_price > 0
-        ? ((data.sale_price - data.cost_price) / data.sale_price) * 100
-        : 0
-
+      // 💡 Removido o cálculo manual da margem. 
+      // Deixamos o PostgreSQL calcular a coluna gerada sozinho.
       const cleanData = {
         name: data.name,
         sku: data.sku,
@@ -110,7 +108,6 @@ export function ProductForm({ productId, initialData, onSuccess }: ProductFormPr
         min_stock: data.min_stock,
         cost_price: data.cost_price,
         sale_price: data.sale_price,
-        margin,
       }
 
       if (isEditing) {
@@ -292,4 +289,4 @@ export function ProductForm({ productId, initialData, onSuccess }: ProductFormPr
       </form>
     </Form>
   )
-}
+              }
