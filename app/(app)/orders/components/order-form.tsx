@@ -171,7 +171,8 @@ export function OrderForm({ orderId, initialData, onSuccess }: OrderFormProps) {
         product_name: item.product_name,
         quantity: item.quantity,
         unit_price: item.unit_price,
-        total: item.quantity * item.unit_price,
+        // 💡 Removida a propriedade 'total'. 
+        // Se for uma coluna gerada, o PostgreSQL calcula de forma automática.
       }))
 
       const { error: itemsError } = await supabase
@@ -181,7 +182,7 @@ export function OrderForm({ orderId, initialData, onSuccess }: OrderFormProps) {
       if (itemsError) throw itemsError
 
       await logAudit('create', 'orders', orderId_new, null, orderData)
-      toast.success(isEditing ? 'Pedido atualizado com sucesso' : 'Pedido criado com sucesso')
+      toast.success(isEditing ? 'Pedido updated com sucesso' : 'Pedido criado com sucesso')
 
       onSuccess?.()
       if (!onSuccess) {
@@ -398,4 +399,5 @@ export function OrderForm({ orderId, initialData, onSuccess }: OrderFormProps) {
       </form>
     </Form>
   )
-}
+    }
+      
