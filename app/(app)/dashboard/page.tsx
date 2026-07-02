@@ -295,7 +295,7 @@ export default function DashboardPage() {
       <div className="flex flex-col min-h-screen">
         <Header
           title="Dashboard"
-          subtitle={`Bem-vindo, ${profile?.name || 'Usuário'}`}
+          subtitle=Bem-vindo, ${profile?.name || 'Usuário'}}
         />
 
         <main className="flex-1 p-6 space-y-6">
@@ -406,9 +406,9 @@ export default function DashboardPage() {
                     <LineChart data={dashboardData?.faturamentoMensal || []}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(163,124,63,0.1)" />
                       <XAxis dataKey="mes" stroke="#A39D93" />
-                      <YAxis stroke="#A39D93" tickFormatter={(v) => `R$ ${(v/1000).toFixed(0)}k`} />
+                      <YAxis stroke="#A39D93" tickFormatter={(v) => R$ ${(v/1000).toFixed(0)}k} />
                       <Tooltip
-                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Valor']}
+                        formatter={(value: number) => R$ ${value.toLocaleString('pt-BR')}, 'Valor']}
                         contentStyle={{ backgroundColor: '#1A1B17', border: '1px solid #A37C3F' }}
                       />
                       <Line
@@ -434,9 +434,9 @@ export default function DashboardPage() {
                     <BarChart data={dashboardData?.entradasSaidas || []}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(163,124,63,0.1)" />
                       <XAxis dataKey="mes" stroke="#A39D93" />
-                      <YAxis stroke="#A39D93" tickFormatter={(v) => `R$ ${(v/1000).toFixed(0)}k`} />
+                      <YAxis stroke="#A39D93" tickFormatter={(v) => R$ ${(v/1000).toFixed(0)}k} />
                       <Tooltip
-                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`]}
+                        formatter={(value: number) => R$ ${value.toLocaleString('pt-BR')}]}
                         contentStyle={{ backgroundColor: '#1A1B17', border: '1px solid #A37C3F' }}
                       />
                       <Legend />
@@ -461,9 +461,9 @@ export default function DashboardPage() {
                     <AreaChart data={dashboardData?.lucroPeriodo || []}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(163,124,63,0.1)" />
                       <XAxis dataKey="mes" stroke="#A39D93" />
-                      <YAxis stroke="#A39D93" tickFormatter={(v) => `R$ ${(v/1000).toFixed(0)}k`} />
+                      <YAxis stroke="#A39D93" tickFormatter={(v) => R$ ${(v/1000).toFixed(0)}k} />
                       <Tooltip
-                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Lucro']}
+                        formatter={(value: number) => R$ ${value.toLocaleString('pt-BR')}, 'Lucro']}
                         contentStyle={{ backgroundColor: '#1A1B17', border: '1px solid #A37C3F' }}
                       />
                       <Area
@@ -496,7 +496,7 @@ export default function DashboardPage() {
                         dataKey="value"
                       >
                         {pieData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                          <Cell key=cell-${index}} fill={chartColors[index % chartColors.length]} />
                         ))}
                       </Pie>
                       <Tooltip
@@ -517,7 +517,7 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Crescimento Mensal</span>
-                    <span className={`font-medium ${(dashboardData?.crescimentoMensal || 0) >= 0 ? 'text-success-foreground' : 'text-destructive-foreground'}`}>
+                    <span className=font-medium ${(dashboardData?.crescimentoMensal || 0) >= 0 ? 'text-success-foreground' : 'text-destructive-foreground'}}>
                       {(dashboardData?.crescimentoMensal || 0).toFixed(1)}%
                     </span>
                   </div>
