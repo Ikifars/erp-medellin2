@@ -186,6 +186,7 @@ export function OrderForm({ orderId, initialData, onSuccess }: OrderFormProps) {
 
       onSuccess?.()
       if (!onSuccess) {
+        router.refresh()
         router.push('/orders')
       }
     } catch (error) {
