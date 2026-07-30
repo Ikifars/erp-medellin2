@@ -140,24 +140,34 @@ export function OrderForm({ orderId, initialData, onSuccess }: OrderFormProps) {
       }
 
       let orderId_new = orderId
+      let orderNumber = ''
 
       if (isEditing) {
-        const { error } = await supabase
+        const { data: updatedOrder, error } = await supabase
           .from('orders')
           .update(orderData)
           .eq('id', orderId)
+          .select('number')
+          .single()
 
         if (error) throw error
+        orderNumber = updatedOrder?.number || 'PED'
 
-        // Delete old items and create new ones
+        // Delete old items and old financial record associated
         await supabase
           .from('order_items')
           .delete()
           .eq('order_id', orderId)
+
+        await supabase
+          .from('financial_transactions')
+          .delete()
+          .eq('reference_id', orderId)
       } else {
+        orderNumber = `PED-${Date.now()}`
         const { data: newOrder, error } = await supabase
           .from('orders')
-          .insert([{ ...orderData, number: `PED-${Date.now()}` }])
+          .insert([{ ...orderData, number: orderNumber }])
           .select()
 
         if (error) throw error
@@ -171,8 +181,6 @@ export function OrderForm({ orderId, initialData, onSuccess }: OrderFormProps) {
         product_name: item.product_name,
         quantity: item.quantity,
         unit_price: item.unit_price,
-        // 💡 Removida a propriedade 'total'. 
-        // Se for uma coluna gerada, o PostgreSQL calcula de forma automática.
       }))
 
       const { error: itemsError } = await supabase
@@ -181,8 +189,26 @@ export function OrderForm({ orderId, initialData, onSuccess }: OrderFormProps) {
 
       if (itemsError) throw itemsError
 
+      // Insere automaticamente a transação financeira para alimentar o Dashboard (Faturamento, Lucro e Ticket Médio)
+      const todayStr = new Date().toISOString().split('T')[0]
+      const financialData = {
+        type: 'entrada',
+        description: `Venda - Pedido ${orderNumber}`,
+        amount: total,
+        category: 'Vendas',
+        transaction_date: todayStr,
+        status: 'concluido',
+        reference_id: orderId_new
+      }
+
+      const { error: financialError } = await supabase
+        .from('financial_transactions')
+        .insert([financialData])
+
+      if (financialError) throw financialError
+
       await logAudit('create', 'orders', orderId_new, null, orderData)
-      toast.success(isEditing ? 'Pedido updated com sucesso' : 'Pedido criado com sucesso')
+      toast.success(isEditing ? 'Pedido atualizado com sucesso' : 'Pedido criado com sucesso')
 
       onSuccess?.()
       if (!onSuccess) {
@@ -400,5 +426,4 @@ export function OrderForm({ orderId, initialData, onSuccess }: OrderFormProps) {
       </form>
     </Form>
   )
-    }
-      
+}
