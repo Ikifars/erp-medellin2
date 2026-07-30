@@ -112,76 +112,79 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function loadDashboard() {
-      try {
+            try {
         const now = new Date()
-        // Pega o primeiro dia do mês atual zerando as horas para evitar conflito de fuso
+        // Define o início do mês atual zerando as horas para evitar falhas de fuso horário
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
-        
-        const startOfYear = new Date(now.getFullYear(), 0, 1)
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0)
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+        const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0)
 
-        // Buscando direto do Supabase filtrando a partir do início do mês atual (muito mais seguro e assertivo)
-        const { data: orders } = await supabase
-          .from('orders')
-          .select('id, total, status, created_at')
-          .is('deleted_at', null)
-          .gte('created_at', startOfMonth.toISOString()) // <--- Mudado de startOfYear para startOfMonth para focar direto nos válidos
-
-        // Fetch orders
+        // 1. Busca orders do ano
         const { data: orders } = await supabase
           .from('orders')
           .select('id, total, status, created_at')
           .is('deleted_at', null)
           .gte('created_at', startOfYear.toISOString())
 
-        // Fetch customers
+        // 2. Busca customers
         const { data: customers } = await supabase
           .from('customers')
           .select('id')
           .is('deleted_at', null)
 
-        // Fetch products
+        // 3. Busca products
         const { data: products } = await supabase
           .from('products')
           .select('id, name, quantity, min_stock')
           .is('deleted_at', null)
 
-        // Fetch financial transactions
+        // 4. Busca financial_transactions do ano (usando transaction_date)
         const { data: transactions } = await supabase
           .from('financial_transactions')
           .select('id, type, amount, category, transaction_date')
           .is('deleted_at', null)
           .gte('transaction_date', startOfYear.toISOString().split('T')[0])
 
-        const currentMonthOrders = orders?.filter((o: any) =>
-          new Date(o.created_at) >= startOfMonth && o.status !== 'cancelado'
-        ) || []
+        // Filtro robusto para o mês atual (ignorando cancelados)
+        const currentMonthOrders = orders?.filter((o: any) => {
+          const orderDate = new Date(o.created_at)
+          return orderDate >= startOfMonth && o.status !== 'cancelado'
+        }) || []
 
         const lastMonthOrders = orders?.filter((o: any) => {
           const date = new Date(o.created_at)
           return date >= startOfLastMonth && date <= endOfLastMonth && o.status !== 'cancelado'
         }) || []
 
-        const faturamentoMes = currentMonthOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0)
-        const faturamentoUltimoMes = lastMonthOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0)
+        // Faturamento e Crescimento
+        const faturamentoMes = currentMonthOrders.reduce((sum: number, o: any) => sum + Number(o.total || 0), 0)
+        const faturamentoUltimoMes = lastMonthOrders.reduce((sum: number, o: any) => sum + Number(o.total || 0), 0)
         const crescimentoMensal = faturamentoUltimoMes > 0
           ? ((faturamentoMes - faturamentoUltimoMes) / faturamentoUltimoMes) * 100
           : 0
 
-        // Calculate financials
-        const currentMonthEntradas = transactions?.filter((t: any) =>
-          t.type === 'entrada' &&
-          new Date(t.transaction_date) >= startOfMonth
-        ).reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0
+        // Cálculo de Entradas e Saídas do mês para o Lucro Líquido
+        const currentMonthEntradas = transactions?.filter((t: any) => {
+          const tDate = new Date(t.transaction_date + 'T00:00:00')
+          return t.type === 'entrada' && tDate >= startOfMonth
+        }).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0) || 0
 
-        const currentMonthSaidas = transactions?.filter((t: any) =>
-          t.type === 'saida' &&
-          new Date(t.transaction_date) >= startOfMonth
-        ).reduce((sum: number, t: any) => sum + Number(t.amount), 0) || 0
+        const currentMonthSaidas = transactions?.filter((t: any) => {
+          const tDate = new Date(t.transaction_date + 'T00:00:00')
+          return t.type === 'saida' && tDate >= startOfMonth
+        }).reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0) || 0
 
         const lucroLiquido = currentMonthEntradas - currentMonthSaidas
         const margemLucro = faturamentoMes > 0 ? (lucroLiquido / faturamentoMes) * 100 : 0
 
-        // Order stats
+        // Total de Pedidos do mês atual
+        const totalPedidos = currentMonthOrders.length
+
+        // Ticket Médio do mês atual
+        const ticketMedio = totalPedidos > 0 ? faturamentoMes / totalPedidos : 0
+
+        // Status dos pedidos para os contadores e gráficos
         const pedidosRecebidos = orders?.filter((o: any) => o.status === 'recebido').length || 0
         const pedidosFaturados = orders?.filter((o: any) => o.status === 'faturado').length || 0
         const pedidosCancelados = orders?.filter((o: any) => o.status === 'cancelado').length || 0
@@ -189,13 +192,9 @@ export default function DashboardPage() {
           o.status === 'recebido' || o.status === 'em_processamento'
         ).length || 0
 
-        // Ticket médio
-        const ticketMedio = currentMonthOrders.length > 0
-          ? faturamentoMes / currentMonthOrders.length
-          : 0
-
-        // Monthly revenue data for chart
+        // Montagem dos gráficos mensais
         const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+        
         const faturamentoMensal = monthNames.map((mes, i) => {
           const monthOrders = orders?.filter((o: any) => {
             const date = new Date(o.created_at)
@@ -203,45 +202,41 @@ export default function DashboardPage() {
           }) || []
           return {
             mes,
-            valor: monthOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0)
+            valor: monthOrders.reduce((sum: number, o: any) => sum + Number(o.total || 0), 0)
           }
         })
 
-        // Entries vs Exits
         const entradasSaidas = monthNames.map((mes, i) => {
           const monthTransactions = transactions?.filter((t: any) => {
-            const date = new Date(t.transaction_date)
+            const date = new Date(t.transaction_date + 'T00:00:00')
             return date.getMonth() === i
           }) || []
           return {
             mes,
-            entradas: monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum: number, t: any) => sum + Number(t.amount), 0),
-            saidas: monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum: number, t: any) => sum + Number(t.amount), 0)
+            entradas: monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0),
+            saidas: monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
           }
         })
 
-        // Profit by period
         const lucroPeriodo = monthNames.map((mes, i) => {
           const monthTransactions = transactions?.filter((t: any) => {
-            const date = new Date(t.transaction_date)
+            const date = new Date(t.transaction_date + 'T00:00:00')
             return date.getMonth() === i
           }) || []
-          const entradas = monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum: number, t: any) => sum + Number(t.amount), 0)
-          const saidas = monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum: number, t: any) => sum + Number(t.amount), 0)
+          const entradas = monthTransactions.filter((t: any) => t.type === 'entrada').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
+          const saidas = monthTransactions.filter((t: any) => t.type === 'saida').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
           return {
             mes,
             lucro: entradas - saidas
           }
         })
 
-        // Alert products low stock
         const alertasEstoque = products?.filter((p: any) => p.quantity <= p.min_stock).map((p: any) => ({
           nome: p.name,
           quantidade: p.quantity,
           minimo: p.min_stock
         })) || []
 
-        // Overdue accounts
         const { data: overdueTransactions } = await supabase
           .from('financial_transactions')
           .select('id')
@@ -251,9 +246,9 @@ export default function DashboardPage() {
         setDashboardData({
           faturamentoMes,
           lucroLiquido,
-          totalPedidos: currentMonthOrders.length,
+          totalPedidos,
           clientesAtivos: customers?.length || 0,
-          produtosEstoque: products?.reduce((sum: number, p: any) => sum + p.quantity, 0) || 0,
+          produtosEstoque: products?.reduce((sum: number, p: any) => sum + Number(p.quantity || 0), 0) || 0,
           ticketMedio,
           crescimentoMensal,
           margemLucro,
@@ -274,7 +269,6 @@ export default function DashboardPage() {
       } finally {
         setIsLoading(false)
       }
-    }
 
     loadDashboard()
   }, [supabase])
