@@ -114,10 +114,17 @@ export default function DashboardPage() {
     async function loadDashboard() {
       try {
         const now = new Date()
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+        // Pega o primeiro dia do mês atual zerando as horas para evitar conflito de fuso
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+        
         const startOfYear = new Date(now.getFullYear(), 0, 1)
+
+        // Buscando direto do Supabase filtrando a partir do início do mês atual (muito mais seguro e assertivo)
+        const { data: orders } = await supabase
+          .from('orders')
+          .select('id, total, status, created_at')
+          .is('deleted_at', null)
+          .gte('created_at', startOfMonth.toISOString()) // <--- Mudado de startOfYear para startOfMonth para focar direto nos válidos
 
         // Fetch orders
         const { data: orders } = await supabase
